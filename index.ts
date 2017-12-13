@@ -1,36 +1,41 @@
-import { OnInit, OnDestroy, Directive, ElementRef, Output, EventEmitter } from 'angular2/core';
+import {
+  OnInit,
+  OnDestroy,
+  Directive,
+  ElementRef,
+  Output,
+  EventEmitter,
+} from '@angular/core';
 declare var require: any;
+// tslint:disable-next-line:no-var-requires
 const elementResizeDetectorMaker = require('element-resize-detector');
 
 @Directive({ selector: '[dimensions]' })
-export class DimensionsDirective implements OnInit, OnDestroy
-{
+export class DimensionsDirective implements OnInit, OnDestroy {
+  public observer: any;
 
-    public observer : any;
+  @Output() public onDimensionsChange = new EventEmitter<any>();
 
-    @Output() onDimensionsChange : EventEmitter<any> = new EventEmitter();
+  constructor(public el: ElementRef) {}
 
-    constructor( public el : ElementRef ){}
+  public ngOnInit() {
+    const { nativeElement } = this.el;
+    const { offsetWidth: width, offsetHeight: height } = nativeElement;
+    const dimensions = { width, height };
+    const event = new Event('dimensions');
 
-    ngOnInit(){
-      const { nativeElement } = this.el;
-      const { offsetWidth : width, offsetHeight : height } = nativeElement;
-      const dimensions = { width, height };
-      const event = new Event( 'dimensions' );
+    this.observer = elementResizeDetectorMaker();
+    this.observer.listenTo(nativeElement, element => {
+      const { offsetWidth, offsetHeight } = element;
+      const detectedDimensions = { width, height };
+      event['dimensions'] = detectedDimensions;
+      this.onDimensionsChange.emit(event);
+    });
+  }
 
-      this.observer = elementResizeDetectorMaker();
-      this.observer.listenTo( nativeElement, element =>
-      {
-          const { offsetWidth : width, offsetHeight : height } = element;
-          const dimensions = { width, height };
-          event[ 'dimensions' ] = dimensions;
-          this.onDimensionsChange.emit( event );
-      })
-    }
-
-    ngOnDestroy() {
-      this.observer.disconnect();
-    }
-};
+  public ngOnDestroy() {
+    this.observer.uninstall(this.el.nativeElement);
+  }
+}
 
 export default DimensionsDirective;
